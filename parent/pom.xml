@@ -278,7 +278,7 @@
                             specified as patterns within a source folder, so we can't exclude generated-sources
                             altogether
                         -->
-                        <excludes>**/*Prism.java,*/itest/jaxb/xsd/*</excludes>
+                        <excludes>**/*.java,*/itest/jaxb/xsd/*</excludes>
                     </configuration>
                     <dependencies>
                         <dependency>

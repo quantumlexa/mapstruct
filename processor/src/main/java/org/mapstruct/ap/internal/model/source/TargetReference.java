@@ -101,12 +101,12 @@ public class TargetReference {
 
             String targetName = mapping.getTargetName();
 
-            if ( targetName == null ) {
+            if (targetName == null) {
                 return null;
             }
 
 
-            String[] segments = targetName.split( "\\." );
+            String[] segments = targetName.split("\\.");
             Parameter parameter = method.getMappingTargetParameter();
 
             boolean foundEntryMatch;
@@ -117,16 +117,16 @@ public class TargetReference {
             // 2. @MappingTarget, with
             // 3. or without parameter name.
             String[] targetPropertyNames = segments;
-            List<PropertyEntry> entries = getTargetEntries( resultType, targetPropertyNames );
+            List<PropertyEntry> entries = getTargetEntries(resultType, targetPropertyNames);
             foundEntryMatch = (entries.size() == targetPropertyNames.length);
-            if ( !foundEntryMatch && segments.length > 1 ) {
-                targetPropertyNames = Arrays.copyOfRange( segments, 1, segments.length );
-                entries = getTargetEntries( resultType, targetPropertyNames );
+            if (!foundEntryMatch && segments.length > 1) {
+                targetPropertyNames = Arrays.copyOfRange(segments, 1, segments.length);
+                entries = getTargetEntries(resultType, targetPropertyNames);
                 foundEntryMatch = (entries.size() == targetPropertyNames.length);
             }
 
             // foundEntryMatch = isValid, errors are handled in the BeanMapping, where the error context is known
-            return new TargetReference( parameter, entries, foundEntryMatch );
+            return new TargetReference(parameter, entries, foundEntryMatch);
         }
 
         private List<PropertyEntry> getTargetEntries(Type type, String[] entryNames) {
@@ -138,48 +138,47 @@ public class TargetReference {
 
             // iterate, establish for each entry the target write accessors. Other than setter is only allowed for
             // last entry
-            for ( int i = 0; i < entryNames.length; i++ ) {
+            for (int i = 0; i < entryNames.length; i++) {
 
-                Accessor targetReadAccessor = nextType.getPropertyReadAccessors().get( entryNames[i] );
-                Accessor targetWriteAccessor = nextType.getPropertyWriteAccessors( cms ).get( entryNames[i] );
-                if ( targetWriteAccessor == null || ( i < entryNames.length - 1 && targetReadAccessor == null) ) {
+                Accessor targetReadAccessor = nextType.getPropertyReadAccessors().get(entryNames[i]);
+                Accessor targetWriteAccessor = nextType.getPropertyWriteAccessors(cms, method.getGetSourceReadAccessors()).get(entryNames[i]);
+                if (targetWriteAccessor == null || (i < entryNames.length - 1 && targetReadAccessor == null)) {
                     // there should always be a write accessor and there should be read accessor mandatory for all
                     // but the last
                     // TODO error handling when full fledged target mapping is in place.
                     break;
                 }
 
-                if ( (i == entryNames.length - 1) || (Executables.isSetterMethod( targetWriteAccessor ) ) ) {
+                if ((i == entryNames.length - 1) || (Executables.isSetterMethod(targetWriteAccessor))) {
                     // only intermediate nested properties when they are a true setter
                     // the last may be other readAccessor (setter / getter / adder).
 
-                    if ( Executables.isGetterMethod( targetWriteAccessor ) ||
-                        Executables.isFieldAccessor( targetWriteAccessor ) ) {
+                    if (Executables.isGetterMethod(targetWriteAccessor) ||
+                            Executables.isFieldAccessor(targetWriteAccessor)) {
                         nextType = typeFactory.getReturnType(
-                            (DeclaredType) nextType.getTypeMirror(),
-                            targetWriteAccessor );
-                    }
-                    else {
+                                (DeclaredType) nextType.getTypeMirror(),
+                                targetWriteAccessor);
+                    } else {
                         nextType = typeFactory.getSingleParameter(
-                            (DeclaredType) nextType.getTypeMirror(),
-                            targetWriteAccessor ).getType();
+                                (DeclaredType) nextType.getTypeMirror(),
+                                targetWriteAccessor).getType();
                     }
 
                     // check if an entry alread exists, otherwise create
-                    String[] fullName = Arrays.copyOfRange( entryNames, 0, i + 1 );
-                    PropertyEntry propertyEntry = PropertyEntry.forTargetReference( fullName, targetReadAccessor,
-                        targetWriteAccessor, nextType );
-                    targetEntries.add( propertyEntry );
-                    }
-
+                    String[] fullName = Arrays.copyOfRange(entryNames, 0, i + 1);
+                    PropertyEntry propertyEntry = PropertyEntry.forTargetReference(fullName, targetReadAccessor,
+                            targetWriteAccessor, nextType);
+                    targetEntries.add(propertyEntry);
                 }
+
+            }
 
             return targetEntries;
         }
 
         private void reportMappingError(Message msg, Object... objects) {
-            messager.printMessage( method.getExecutable(), mapping.getMirror(), mapping.getSourceAnnotationValue(),
-                msg, objects );
+            messager.printMessage(method.getExecutable(), mapping.getMirror(), mapping.getSourceAnnotationValue(),
+                    msg, objects);
         }
     }
 
@@ -203,28 +202,27 @@ public class TargetReference {
 
     public List<String> getElementNames() {
         List<String> elementNames = new ArrayList<String>();
-        if ( parameter != null ) {
+        if (parameter != null) {
             // only relevant for source properties
-            elementNames.add( parameter.getName() );
+            elementNames.add(parameter.getName());
         }
-        for ( PropertyEntry propertyEntry : propertyEntries ) {
-            elementNames.add( propertyEntry.getName() );
+        for (PropertyEntry propertyEntry : propertyEntries) {
+            elementNames.add(propertyEntry.getName());
         }
         return elementNames;
     }
 
     public TargetReference pop() {
-        if ( propertyEntries.size() > 1 ) {
-            List<PropertyEntry> newPropertyEntries = new ArrayList<PropertyEntry>( propertyEntries.size() - 1 );
-            for ( PropertyEntry propertyEntry : propertyEntries ) {
+        if (propertyEntries.size() > 1) {
+            List<PropertyEntry> newPropertyEntries = new ArrayList<PropertyEntry>(propertyEntries.size() - 1);
+            for (PropertyEntry propertyEntry : propertyEntries) {
                 PropertyEntry newPropertyEntry = propertyEntry.pop();
-                if ( newPropertyEntry != null ) {
-                    newPropertyEntries.add( newPropertyEntry );
+                if (newPropertyEntry != null) {
+                    newPropertyEntries.add(newPropertyEntry);
                 }
             }
-            return new TargetReference( null, newPropertyEntries, isValid );
-        }
-        else {
+            return new TargetReference(null, newPropertyEntries, isValid);
+        } else {
             return null;
         }
     }

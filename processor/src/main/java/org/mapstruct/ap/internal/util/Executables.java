@@ -24,9 +24,7 @@ import static org.mapstruct.ap.internal.util.workarounds.SpecificCompilerWorkaro
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.*;
 
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
@@ -204,6 +202,9 @@ public class Executables {
      * @return the executable elements usable in the type
      */
     public static List<Accessor> getAllEnclosedAccessors(Elements elementUtils, TypeElement element) {
+        if(element == null){
+            return java.util.Collections.emptyList();
+        }
         List<Accessor> enclosedElements = new ArrayList<Accessor>();
         element = replaceTypeElementIfNecessary( elementUtils, element );
         addEnclosedElementsInHierarchy( elementUtils, enclosedElements, element, element );

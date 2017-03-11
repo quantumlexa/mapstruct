@@ -72,8 +72,8 @@ public class AnnotationProcessorTestRunner extends ParentRunner<Runner> {
         }
 
         return Arrays.<Runner> asList(
-            new InnerAnnotationProcessorRunner( klass, Compiler.JDK ),
-            new InnerAnnotationProcessorRunner( klass, Compiler.ECLIPSE )
+            new InnerAnnotationProcessorRunner( klass, Compiler.JDK )//,
+//            new InnerAnnotationProcessorRunner( klass, Compiler.ECLIPSE )
             );
     }
 

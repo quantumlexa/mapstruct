@@ -20,12 +20,7 @@ package org.mapstruct.ap.internal.model.source;
 
 import static org.mapstruct.ap.internal.util.Collections.first;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
@@ -40,6 +35,7 @@ import org.mapstruct.ap.internal.util.Executables;
 import org.mapstruct.ap.internal.util.FormattingMessager;
 import org.mapstruct.ap.internal.util.MapperConfiguration;
 import org.mapstruct.ap.internal.util.Strings;
+import org.mapstruct.ap.internal.util.accessor.Accessor;
 
 /**
  * Represents a mapping method with source and target type and the mappings between the properties of source and target
@@ -74,6 +70,7 @@ public class SourceMethod implements Method {
     private final ParameterProvidedMethods contextProvidedMethods;
 
     private List<String> parameterNames;
+    private Map<String, Accessor> getSourceReadAccessors;
 
     private List<SourceMethod> applicablePrototypeMethods;
     private List<SourceMethod> applicableReversePrototypeMethods;
@@ -193,14 +190,14 @@ public class SourceMethod implements Method {
         public SourceMethod build() {
 
             MappingOptions mappingOptions =
-                    new MappingOptions( mappings, iterableMapping, mapMapping, beanMapping, valueMappings, false );
+                    new MappingOptions(mappings, iterableMapping, mapMapping, beanMapping, valueMappings, false);
 
-            SourceMethod sourceMethod = new SourceMethod( this, mappingOptions );
+            SourceMethod sourceMethod = new SourceMethod(this, mappingOptions);
 
-            if ( mappings != null ) {
-                for ( Map.Entry<String, List<Mapping>> entry : mappings.entrySet() ) {
-                    for ( Mapping mapping : entry.getValue() ) {
-                        mapping.init( sourceMethod, messager, typeFactory, false );
+            if (mappings != null) {
+                for (Map.Entry<String, List<Mapping>> entry : mappings.entrySet()) {
+                    for (Mapping mapping : entry.getValue()) {
+                        mapping.init(sourceMethod, messager, typeFactory, false);
                     }
                 }
             }
@@ -214,17 +211,17 @@ public class SourceMethod implements Method {
         this.parameters = builder.parameters;
         this.returnType = builder.returnType;
         this.exceptionTypes = builder.exceptionTypes;
-        this.accessibility = Accessibility.fromModifiers( builder.executable.getModifiers() );
+        this.accessibility = Accessibility.fromModifiers(builder.executable.getModifiers());
 
         this.mappingOptions = mappingOptions;
 
-        this.sourceParameters = Parameter.getSourceParameters( parameters );
-        this.contextParameters = Parameter.getContextParameters( parameters );
+        this.sourceParameters = Parameter.getSourceParameters(parameters);
+        this.contextParameters = Parameter.getContextParameters(parameters);
         this.contextProvidedMethods = builder.contextProvidedMethods;
 
-        this.mappingTargetParameter = Parameter.getMappingTargetParameter( parameters );
-        this.targetTypeParameter = Parameter.getTargetTypeParameter( parameters );
-        this.isObjectFactory = determineIfIsObjectFactory( executable );
+        this.mappingTargetParameter = Parameter.getMappingTargetParameter(parameters);
+        this.targetTypeParameter = Parameter.getTargetTypeParameter(parameters);
+        this.isObjectFactory = determineIfIsObjectFactory(executable);
 
         this.typeUtils = builder.typeUtils;
         this.typeFactory = builder.typeFactory;
@@ -234,12 +231,12 @@ public class SourceMethod implements Method {
     }
 
     private boolean determineIfIsObjectFactory(ExecutableElement executable) {
-        boolean hasFactoryAnnotation = ObjectFactoryPrism.getInstanceOn( executable ) != null;
+        boolean hasFactoryAnnotation = ObjectFactoryPrism.getInstanceOn(executable) != null;
         boolean hasNoSourceParameters = getSourceParameters().isEmpty();
         boolean hasNoMappingTargetParam = getMappingTargetParameter() == null;
         return !isLifecycleCallbackMethod() && !returnType.isVoid()
-            && hasNoMappingTargetParam
-            && ( hasFactoryAnnotation || hasNoSourceParameters );
+                && hasNoMappingTargetParam
+                && (hasFactoryAnnotation || hasNoSourceParameters);
     }
 
     @Override
@@ -279,14 +276,14 @@ public class SourceMethod implements Method {
 
     @Override
     public List<String> getParameterNames() {
-        if ( parameterNames == null ) {
-            List<String> names = new ArrayList<String>( parameters.size() );
+        if (parameterNames == null) {
+            List<String> names = new ArrayList<String>(parameters.size());
 
-            for ( Parameter parameter : parameters ) {
-                names.add( parameter.getName() );
+            for (Parameter parameter : parameters) {
+                names.add(parameter.getName());
             }
 
-            parameterNames = Collections.unmodifiableList( names );
+            parameterNames = Collections.unmodifiableList(names);
         }
 
         return parameterNames;
@@ -308,32 +305,32 @@ public class SourceMethod implements Method {
     }
 
     public Mapping getSingleMappingByTargetPropertyName(String targetPropertyName) {
-        List<Mapping> all = mappingOptions.getMappings().get( targetPropertyName );
-        return all != null ? first( all ) : null;
+        List<Mapping> all = mappingOptions.getMappings().get(targetPropertyName);
+        return all != null ? first(all) : null;
     }
 
     public boolean reverses(SourceMethod method) {
         return method.getDeclaringMapper() == null
-            && method.isAbstract()
-            && getSourceParameters().size() == 1 && method.getSourceParameters().size() == 1
-            && first( getSourceParameters() ).getType().isAssignableTo( method.getResultType() )
-            && getResultType().isAssignableTo( first( method.getSourceParameters() ).getType() );
+                && method.isAbstract()
+                && getSourceParameters().size() == 1 && method.getSourceParameters().size() == 1
+                && first(getSourceParameters()).getType().isAssignableTo(method.getResultType())
+                && getResultType().isAssignableTo(first(method.getSourceParameters()).getType());
     }
 
     public boolean isSame(SourceMethod method) {
         return getSourceParameters().size() == 1 && method.getSourceParameters().size() == 1
-            && equals( first( getSourceParameters() ).getType(), first( method.getSourceParameters() ).getType() )
-            && equals( getResultType(), method.getResultType() );
+                && equals(first(getSourceParameters()).getType(), first(method.getSourceParameters()).getType())
+                && equals(getResultType(), method.getResultType());
     }
 
     public boolean canInheritFrom(SourceMethod method) {
         return method.getDeclaringMapper() == null
-            && method.isAbstract()
-            && isMapMapping() == method.isMapMapping()
-            && isIterableMapping() == method.isIterableMapping()
-            && isEnumMapping() == method.isEnumMapping()
-            && getResultType().isAssignableTo( method.getResultType() )
-            && allParametersAreAssignable( getSourceParameters(), method.getSourceParameters() );
+                && method.isAbstract()
+                && isMapMapping() == method.isMapMapping()
+                && isIterableMapping() == method.isIterableMapping()
+                && isEnumMapping() == method.isEnumMapping()
+                && getResultType().isAssignableTo(method.getResultType())
+                && allParametersAreAssignable(getSourceParameters(), method.getSourceParameters());
     }
 
     @Override
@@ -352,49 +349,49 @@ public class SourceMethod implements Method {
     }
 
     public boolean isIterableMapping() {
-        if ( isIterableMapping == null ) {
+        if (isIterableMapping == null) {
             isIterableMapping = getSourceParameters().size() == 1
-                && first( getSourceParameters() ).getType().isIterableType()
-                && getResultType().isIterableType();
+                    && first(getSourceParameters()).getType().isIterableType()
+                    && getResultType().isIterableType();
         }
         return isIterableMapping;
     }
 
     public boolean isStreamMapping() {
-        if ( isStreamMapping == null ) {
+        if (isStreamMapping == null) {
             isStreamMapping = getSourceParameters().size() == 1
-                && ( first( getSourceParameters() ).getType().isIterableType() && getResultType().isStreamType()
-                    || first( getSourceParameters() ).getType().isStreamType() && getResultType().isIterableType()
-                    || first( getSourceParameters() ).getType().isStreamType() && getResultType().isStreamType() );
+                    && (first(getSourceParameters()).getType().isIterableType() && getResultType().isStreamType()
+                    || first(getSourceParameters()).getType().isStreamType() && getResultType().isIterableType()
+                    || first(getSourceParameters()).getType().isStreamType() && getResultType().isStreamType());
         }
         return isStreamMapping;
     }
 
     public boolean isMapMapping() {
-        if ( isMapMapping == null ) {
+        if (isMapMapping == null) {
             isMapMapping = getSourceParameters().size() == 1
-                && first( getSourceParameters() ).getType().isMapType()
-                && getResultType().isMapType();
+                    && first(getSourceParameters()).getType().isMapType()
+                    && getResultType().isMapType();
         }
         return isMapMapping;
     }
 
     public boolean isEnumMapping() {
-        if ( isEnumMapping == null ) {
+        if (isEnumMapping == null) {
             isEnumMapping = getSourceParameters().size() == 1
-                && first( getSourceParameters() ).getType().isEnumType()
-                && getResultType().isEnumType();
+                    && first(getSourceParameters()).getType().isEnumType()
+                    && getResultType().isEnumType();
         }
         return isEnumMapping;
     }
 
     public boolean isBeanMapping() {
-        if ( isBeanMapping == null ) {
+        if (isBeanMapping == null) {
             isBeanMapping = !isIterableMapping()
-                && !isMapMapping()
-                && !isEnumMapping()
-                && !isValueMapping()
-                && !isStreamMapping();
+                    && !isMapMapping()
+                    && !isEnumMapping()
+                    && !isValueMapping()
+                    && !isStreamMapping();
         }
         return isBeanMapping;
     }
@@ -407,26 +404,26 @@ public class SourceMethod implements Method {
      */
     public boolean isValueMapping() {
 
-        if ( isValueMapping == null ) {
+        if (isValueMapping == null) {
             isValueMapping = isEnumMapping() && mappingOptions.getMappings().isEmpty();
         }
         return isValueMapping;
     }
 
     private boolean equals(Object o1, Object o2) {
-        return (o1 == null && o2 == null) || (o1 != null) && o1.equals( o2 );
+        return (o1 == null && o2 == null) || (o1 != null) && o1.equals(o2);
     }
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder( returnType.toString() );
-        sb.append( " " );
+        StringBuilder sb = new StringBuilder(returnType.toString());
+        sb.append(" ");
 
-        if ( declaringMapper != null ) {
-            sb.append( declaringMapper ).append( "." );
+        if (declaringMapper != null) {
+            sb.append(declaringMapper).append(".");
         }
 
-        sb.append( getName() ).append( "(" ).append( Strings.join( parameters, ", " ) ).append( ")" );
+        sb.append(getName()).append("(").append(Strings.join(parameters, ", ")).append(")");
 
         return sb.toString();
     }
@@ -440,21 +437,20 @@ public class SourceMethod implements Method {
     public List<Mapping> getMappingBySourcePropertyName(String sourcePropertyName) {
         List<Mapping> mappingsOfSourceProperty = new ArrayList<Mapping>();
 
-        for ( List<Mapping> mappingOfProperty : mappingOptions.getMappings().values() ) {
-            for ( Mapping mapping : mappingOfProperty ) {
+        for (List<Mapping> mappingOfProperty : mappingOptions.getMappings().values()) {
+            for (Mapping mapping : mappingOfProperty) {
 
-                if ( isEnumMapping() ) {
-                    if ( mapping.getSourceName().equals( sourcePropertyName ) ) {
-                        mappingsOfSourceProperty.add( mapping );
+                if (isEnumMapping()) {
+                    if (mapping.getSourceName().equals(sourcePropertyName)) {
+                        mappingsOfSourceProperty.add(mapping);
                     }
-                }
-                else {
+                } else {
                     List<PropertyEntry> sourceEntries = mapping.getSourceReference().getPropertyEntries();
 
                     // there can only be a mapping if there's only one entry for a source property, so: param.property.
                     // There can be no mapping if there are more entries. So: param.property.property2
-                    if ( sourceEntries.size() == 1 && sourcePropertyName.equals( first( sourceEntries ).getName() ) ) {
-                        mappingsOfSourceProperty.add( mapping );
+                    if (sourceEntries.size() == 1 && sourcePropertyName.equals(first(sourceEntries).getName())) {
+                        mappingsOfSourceProperty.add(mapping);
                     }
                 }
             }
@@ -464,8 +460,8 @@ public class SourceMethod implements Method {
     }
 
     public Parameter getSourceParameter(String sourceParameterName) {
-        for ( Parameter parameter : getSourceParameters() ) {
-            if ( parameter.getName().equals( sourceParameterName ) ) {
+        for (Parameter parameter : getSourceParameters()) {
+            if (parameter.getName().equals(sourceParameterName)) {
                 return parameter;
             }
         }
@@ -474,12 +470,12 @@ public class SourceMethod implements Method {
     }
 
     public List<SourceMethod> getApplicablePrototypeMethods() {
-        if ( applicablePrototypeMethods == null ) {
+        if (applicablePrototypeMethods == null) {
             applicablePrototypeMethods = new ArrayList<SourceMethod>();
 
-            for ( SourceMethod prototype : prototypeMethods ) {
-                if ( canInheritFrom( prototype ) ) {
-                    applicablePrototypeMethods.add( prototype );
+            for (SourceMethod prototype : prototypeMethods) {
+                if (canInheritFrom(prototype)) {
+                    applicablePrototypeMethods.add(prototype);
                 }
             }
         }
@@ -488,12 +484,12 @@ public class SourceMethod implements Method {
     }
 
     public List<SourceMethod> getApplicableReversePrototypeMethods() {
-        if ( applicableReversePrototypeMethods == null ) {
+        if (applicableReversePrototypeMethods == null) {
             applicableReversePrototypeMethods = new ArrayList<SourceMethod>();
 
-            for ( SourceMethod prototype : prototypeMethods ) {
-                if ( reverses( prototype ) ) {
-                    applicableReversePrototypeMethods.add( prototype );
+            for (SourceMethod prototype : prototypeMethods) {
+                if (reverses(prototype)) {
+                    applicableReversePrototypeMethods.add(prototype);
                 }
             }
         }
@@ -502,20 +498,20 @@ public class SourceMethod implements Method {
     }
 
     private static boolean allParametersAreAssignable(List<Parameter> fromParams, List<Parameter> toParams) {
-        if ( fromParams.size() == toParams.size() ) {
-            Set<Parameter> unaccountedToParams = new HashSet<Parameter>( toParams );
+        if (fromParams.size() == toParams.size()) {
+            Set<Parameter> unaccountedToParams = new HashSet<Parameter>(toParams);
 
-            for ( Parameter fromParam : fromParams ) {
+            for (Parameter fromParam : fromParams) {
                 // each fromParam needs at least one match, and all toParam need to be accounted for at the end
                 boolean hasMatch = false;
-                for ( Parameter toParam : toParams ) {
-                    if ( fromParam.getType().isAssignableTo( toParam.getType() ) ) {
-                        unaccountedToParams.remove( toParam );
+                for (Parameter toParam : toParams) {
+                    if (fromParam.getType().isAssignableTo(toParam.getType())) {
+                        unaccountedToParams.remove(toParam);
                         hasMatch = true;
                     }
                 }
 
-                if ( !hasMatch ) {
+                if (!hasMatch) {
                     return false;
                 }
             }
@@ -533,23 +529,22 @@ public class SourceMethod implements Method {
      */
     @Override
     public boolean overridesMethod() {
-        return declaringMapper == null && executable.getModifiers().contains( Modifier.ABSTRACT );
+        return declaringMapper == null && executable.getModifiers().contains(Modifier.ABSTRACT);
     }
 
     @Override
     public boolean matches(List<Type> sourceTypes, Type targetType) {
-        MethodMatcher matcher = new MethodMatcher( typeUtils, typeFactory, this );
-        return matcher.matches( sourceTypes, targetType );
+        MethodMatcher matcher = new MethodMatcher(typeUtils, typeFactory, this);
+        return matcher.matches(sourceTypes, targetType);
     }
 
     /**
      * @param parameters the parameter list to check
-     *
      * @return {@code true} if the parameter list contains a parameter annotated with {@code @TargetType}
      */
     public static boolean containsTargetTypeParameter(List<Parameter> parameters) {
-        for ( Parameter param : parameters ) {
-            if ( param.isTargetType() ) {
+        for (Parameter param : parameters) {
+            if (param.isTargetType()) {
                 return true;
             }
         }
@@ -569,12 +564,12 @@ public class SourceMethod implements Method {
 
     @Override
     public boolean isStatic() {
-        return executable.getModifiers().contains( Modifier.STATIC );
+        return executable.getModifiers().contains(Modifier.STATIC);
     }
 
     @Override
     public boolean isDefault() {
-        return Executables.isDefaultMethod( executable );
+        return Executables.isDefaultMethod(executable);
     }
 
     @Override
@@ -589,15 +584,15 @@ public class SourceMethod implements Method {
 
     @Override
     public boolean isLifecycleCallbackMethod() {
-        return Executables.isLifecycleCallbackMethod( getExecutable() );
+        return Executables.isLifecycleCallbackMethod(getExecutable());
     }
 
     public boolean isAfterMappingMethod() {
-        return Executables.isAfterMappingMethod( getExecutable() );
+        return Executables.isAfterMappingMethod(getExecutable());
     }
 
     public boolean isBeforeMappingMethod() {
-        return Executables.isBeforeMappingMethod( getExecutable() );
+        return Executables.isBeforeMappingMethod(getExecutable());
     }
 
     /**
@@ -605,11 +600,26 @@ public class SourceMethod implements Method {
      * methods
      */
     public boolean isAbstract() {
-        return executable.getModifiers().contains( Modifier.ABSTRACT );
+        return executable.getModifiers().contains(Modifier.ABSTRACT);
     }
 
     @Override
     public boolean isUpdateMethod() {
         return getMappingTargetParameter() != null;
+    }
+
+    public Map<String, Accessor> getGetSourceReadAccessors() {
+
+        if (getSourceReadAccessors == null) {
+            Map<String, Accessor> map = new LinkedHashMap<String, Accessor>();
+
+            for (Parameter parameter : getSourceParameters()) {
+                map.putAll(parameter.getType().getPropertyReadAccessors());
+            }
+            getSourceReadAccessors = Collections.unmodifiableMap(map);
+
+        }
+
+        return getSourceReadAccessors;
     }
 }
