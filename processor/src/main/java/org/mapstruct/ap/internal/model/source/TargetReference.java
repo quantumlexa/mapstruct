@@ -181,7 +181,8 @@ public class TargetReference {
             for ( int i = 0; i < entryNames.length; i++ ) {
 
                 Accessor targetReadAccessor = nextType.getPropertyReadAccessors().get( entryNames[i] );
-                Accessor targetWriteAccessor = nextType.getPropertyWriteAccessors( cms ).get( entryNames[i] );
+                Accessor targetWriteAccessor = nextType.getPropertyWriteAccessors( cms,
+                    method.getSourceReadAccessors() ).get( entryNames[i] );
                 boolean isLast = i == entryNames.length - 1;
                 boolean isNotLast = i < entryNames.length - 1;
                 if ( isWriteAccessorNotValidWhenNotLast( targetWriteAccessor, isNotLast )
